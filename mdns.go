@@ -299,9 +299,10 @@ func (m *mDNS) Start(ctx context.Context, port int) error {
 			}
 
 			if m.rHandler != nil {
-				var answers, _ = p.AllAnswers()
-				for _, answer := range answers {
-					go m.rHandler(received.Addr, answer)
+				p.AnswerHeader()
+				var resources, _ = p.AllAnswers()
+				for _, resource := range resources {
+					go m.rHandler(received.Addr, resource)
 				}
 			} else {
 				p.SkipAllAnswers()
