@@ -2,29 +2,50 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/smartwalle/log4go"
 	"github.com/smartwalle/mdns"
 	"golang.org/x/net/dns/dnsmessage"
 	"net"
+	"os"
+	"time"
 )
 
+type Resource struct {
+	mdns.Resource
+	Addr net.Addr
+}
+
 func main() {
-	var name = mdns.MustName("xxxx.local.")
-	_ = name
+	var name = mdns.MustName("smartwalle.local.")
 
-	var c = mdns.NewClient()
-	c.EnableIPv4()
+	var client = mdns.NewClient()
+	client.EnableIPv4()
 
-	c.OnResource(func(addr net.Addr, resource mdns.Resource) {
+	var found = make(chan Resource, 1)
+	client.OnResource(func(addr net.Addr, resource mdns.Resource) {
 		for _, answer := range resource.Answers {
-			log4go.Println("OnResource", addr, answer.Header.Name, answer.Header.Type, answer.Body)
+			if answer.Header.Name.String() != name.String() {
+				continue
+			}
+			found <- Resource{Resource: resource, Addr: addr}
 		}
 	})
 
-	c.Start(context.Background())
+	client.OnWarning(func(addr net.Addr, err error) {
+		log4go.Println("OnWarning", addr, err)
+	})
 
-	msg := dnsmessage.Message{
+	client.OnError(func(err error) {
+		log4go.Println("OnError", err)
+		os.Exit(-1)
+	})
+
+	if err := client.Start(context.Background()); err != nil {
+		log4go.Println("Start Error:", err)
+		return
+	}
+
+	var m = dnsmessage.Message{
 		Header: dnsmessage.Header{},
 		Questions: []dnsmessage.Question{
 			{
@@ -34,8 +55,17 @@ func main() {
 			},
 		},
 	}
+	if err := client.Multicast(m); err != nil {
+		log4go.Println("Multicast Error:", err)
+		return
+	}
 
-	fmt.Println(c.Multicast(msg))
-
-	select {}
+	select {
+	case <-time.After(time.Second * 3):
+		log4go.Println("Timeout")
+	case resource := <-found:
+		for _, answer := range resource.Answers {
+			log4go.Println(resource.Addr, answer.Header.Name, answer.Header.Type, answer.Body)
+		}
+	}
 }

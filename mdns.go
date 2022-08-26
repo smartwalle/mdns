@@ -24,7 +24,7 @@ var defaultMDNSMulticastIPv6 = net.ParseIP("ff02::fb")
 type mDNS struct {
 	conn4    *internal.Conn
 	conn6    *internal.Conn
-	qHandler func(net.Addr, []Question)
+	qHandler func(net.Addr, Question)
 	rHandler func(net.Addr, Resource)
 	wHandler func(net.Addr, error)
 	eHandler func(error)
@@ -55,7 +55,7 @@ func (m *mDNS) SetMulticastTTL(ttl int) error {
 	return nil
 }
 
-func (m *mDNS) OnQuestion(f func(net.Addr, []Question)) {
+func (m *mDNS) OnQuestion(f func(net.Addr, Question)) {
 	m.qHandler = f
 }
 
@@ -187,7 +187,10 @@ func (m *mDNS) start(ctx context.Context) error {
 				return
 			}
 
-			if _, err := p.Start(received.Data); err != nil {
+			var header dnsmessage.Header
+			var err error
+
+			if header, err = p.Start(received.Data); err != nil {
 				if m.wHandler != nil {
 					go m.wHandler(received.Addr, err)
 				}
@@ -197,7 +200,11 @@ func (m *mDNS) start(ctx context.Context) error {
 			if m.qHandler != nil {
 				var questions, _ = p.AllQuestions()
 				if len(questions) > 0 {
-					go m.qHandler(received.Addr, questions)
+					var nQuestion = Question{
+						Header:    header,
+						Questions: questions,
+					}
+					go m.qHandler(received.Addr, nQuestion)
 				}
 			} else {
 				p.SkipAllQuestions()
@@ -210,6 +217,7 @@ func (m *mDNS) start(ctx context.Context) error {
 
 				if len(answers) > 0 || len(authorities) > 0 || len(additionals) > 0 {
 					var nResource = Resource{
+						Header:      header,
 						Answers:     answers,
 						Authorities: authorities,
 						Additionals: additionals,

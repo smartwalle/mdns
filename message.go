@@ -46,9 +46,13 @@ func IPToDNSRecordType(ip net.IP) dnsmessage.Type {
 	}
 }
 
-type Question = dnsmessage.Question
+type Question struct {
+	Header    dnsmessage.Header
+	Questions []dnsmessage.Question
+}
 
 type Resource struct {
+	Header      dnsmessage.Header
 	Answers     []dnsmessage.Resource
 	Authorities []dnsmessage.Resource
 	Additionals []dnsmessage.Resource

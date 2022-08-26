@@ -27,7 +27,7 @@ type Server interface {
 	SetMulticastTTL(ttl int) error
 
 	// OnQuestion calls f on every Question received.
-	OnQuestion(f func(net.Addr, []Question))
+	OnQuestion(f func(net.Addr, Question))
 
 	// OnResource calls f on every Resource received.
 	OnResource(f func(net.Addr, Resource))
