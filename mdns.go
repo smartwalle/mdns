@@ -18,8 +18,11 @@ import (
 // Port is the mDNS port required of the spec
 const Port = 5353
 
-var defaultMDNSMulticastIPv4 = net.ParseIP("224.0.0.251")
-var defaultMDNSMulticastIPv6 = net.ParseIP("ff02::fb")
+var mDNSMulticastIPv4 = net.ParseIP("224.0.0.251")
+var mDNSMulticastIPv6 = net.ParseIP("ff02::fb")
+
+var mDNSWildcardIPv4 = net.ParseIP("224.0.0.0")
+var mDNSWildcardIPv6 = net.ParseIP("ff02::")
 
 type mDNS struct {
 	conn4    *internal.Conn
@@ -33,11 +36,11 @@ type mDNS struct {
 func (m *mDNS) enableIPv4(lPort int, joinGroup bool) {
 	if m.conn4 == nil {
 		var lAddr = &net.UDPAddr{
-			IP:   defaultMDNSMulticastIPv4,
+			IP:   mDNSMulticastIPv4,
 			Port: lPort,
 		}
 		var mAddr = &net.UDPAddr{
-			IP:   defaultMDNSMulticastIPv4,
+			IP:   mDNSMulticastIPv4,
 			Port: Port,
 		}
 		m.conn4 = internal.NewConn(lAddr, mAddr, &internal.IPv4PacketConnFactory{JoinGroup: joinGroup}, -1)
@@ -47,11 +50,11 @@ func (m *mDNS) enableIPv4(lPort int, joinGroup bool) {
 func (m *mDNS) enableIPv6(lPort int, joinGroup bool) {
 	if m.conn6 == nil {
 		var lAddr = &net.UDPAddr{
-			IP:   defaultMDNSMulticastIPv6,
+			IP:   mDNSMulticastIPv6,
 			Port: lPort,
 		}
 		var mAddr = &net.UDPAddr{
-			IP:   defaultMDNSMulticastIPv6,
+			IP:   mDNSMulticastIPv6,
 			Port: Port,
 		}
 		m.conn6 = internal.NewConn(lAddr, mAddr, &internal.IPv6PacketConnFactory{JoinGroup: joinGroup}, -1)
