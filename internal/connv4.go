@@ -18,9 +18,11 @@ func (c *ipv4PacketConn) WriteTo(b []byte, dst net.Addr) (int, error) {
 	return c.PacketConn.WriteTo(b, nil, dst)
 }
 
-type IPv4PacketConnFactory struct{}
+type IPv4PacketConnFactory struct {
+	JoinGroup bool
+}
 
-func (*IPv4PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, laddr *net.UDPAddr, ttl int) (net.PacketConn, error) {
+func (f *IPv4PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, laddr *net.UDPAddr, ttl int) (net.PacketConn, error) {
 	conn, err := net.ListenUDP("udp4", laddr)
 	if err != nil {
 		return nil, err
@@ -34,20 +36,16 @@ func (*IPv4PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, laddr *net.U
 		}
 	}
 
-	for i, iface := range ifaces {
-		if iface.Flags&net.FlagMulticast == 0 || iface.Flags&net.FlagPointToPoint == net.FlagPointToPoint {
-			continue
-		}
-		if err := pConn.JoinGroup(&ifaces[i], laddr); err != nil {
-			pConn.Close()
-			return nil, err
+	if f.JoinGroup {
+		for i, iface := range ifaces {
+			if iface.Flags&net.FlagMulticast == 0 || iface.Flags&net.FlagPointToPoint == net.FlagPointToPoint {
+				continue
+			}
+			if err := pConn.JoinGroup(&ifaces[i], laddr); err != nil {
+				pConn.Close()
+				return nil, err
+			}
 		}
 	}
 	return &ipv4PacketConn{PacketConn: pConn}, nil
-}
-
-var defaultMDNSMulticastIPv4 = net.ParseIP("224.0.0.251")
-
-func NewIPv4Conn() *Conn {
-	return NewConn(defaultMDNSMulticastIPv4, &IPv4PacketConnFactory{}, -1)
 }

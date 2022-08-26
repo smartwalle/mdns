@@ -45,3 +45,11 @@ func IPToDNSRecordType(ip net.IP) dnsmessage.Type {
 		return dnsmessage.TypeAAAA
 	}
 }
+
+type Question = dnsmessage.Question
+
+type Resource struct {
+	Answers     []dnsmessage.Resource
+	Authorities []dnsmessage.Resource
+	Additionals []dnsmessage.Resource
+}

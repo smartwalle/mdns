@@ -11,25 +11,25 @@ type PacketConnFactory interface {
 	MakeUDPSocket(iface []net.Interface, laddr *net.UDPAddr, ttl int) (net.PacketConn, error)
 }
 
-func NewConn(ip net.IP, factory PacketConnFactory, ttl int) *Conn {
+func NewConn(lAddr, mAddr *net.UDPAddr, factory PacketConnFactory, ttl int) *Conn {
 	return &Conn{
-		dst: net.UDPAddr{
-			IP: ip,
-		},
+		lAddr:   lAddr,
+		mAddr:   mAddr,
 		factory: factory,
 		ttl:     ttl,
 	}
 }
 
 type Conn struct {
-	dst     net.UDPAddr
+	lAddr   *net.UDPAddr
+	mAddr   *net.UDPAddr
 	ttl     int
 	factory PacketConnFactory
 	conn    net.PacketConn
 }
 
 func (c *Conn) SetIP(ip net.IP) {
-	c.dst.IP = ip
+	c.lAddr.IP = ip
 }
 
 func (c *Conn) SetMulticastTTL(ttl int) error {
@@ -87,13 +87,12 @@ func (c *Conn) SendTo(b []byte, dst *net.UDPAddr) error {
 	return nil
 }
 
-func (c *Conn) Send(b []byte) error {
-	return c.SendTo(b, &c.dst)
+func (c *Conn) Multicast(b []byte) error {
+	return c.SendTo(b, c.mAddr)
 }
 
-func (c *Conn) MakeUDPSocket(ifaces []net.Interface, port int) error {
-	c.dst.Port = port
-	conn, err := c.factory.MakeUDPSocket(ifaces, &c.dst, c.ttl)
+func (c *Conn) MakeUDPSocket(ifaces []net.Interface) error {
+	conn, err := c.factory.MakeUDPSocket(ifaces, c.lAddr, c.ttl)
 	if err != nil {
 		return err
 	}

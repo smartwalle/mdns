@@ -15,94 +15,19 @@ import (
 	"net"
 )
 
-// DefaultPort is the mDNS port required of the spec, though this library is port-agnostic.
-const DefaultPort int = 5353
+// Port is the mDNS port required of the spec
+const Port = 5353
 
-// MDNS is the central interface through which requests are sent and received.
-// This implementation is agnostic to use case and asynchronous.
-// To handle various responses add Handlers. To send a packet you may use
-// either SendTo (generally used for unicast) or Send (generally used for
-// multicast).
-type MDNS interface {
-	// EnableIPv4 enables listening on IPv4 network interfaces.
-	EnableIPv4()
-
-	// EnableIPv6 enables listening on IPv6 network interfaces.
-	EnableIPv6()
-
-	// SetAddress sets a non-default listen address.
-	SetAddress(address string) error
-
-	// SetMulticastTTL sets the multicast time to live. If this is set to less
-	// than zero it stays at the default. If it is set to zero this will mean
-	// no packets can escape the host.
-	//
-	// Must be no greater than 255.
-	SetMulticastTTL(ttl int) error
-
-	// OnQuestion calls f on every Question received.
-	OnQuestion(f func(net.Addr, dnsmessage.Question))
-
-	// OnResource calls f on every Resource received.
-	OnResource(f func(net.Addr, dnsmessage.Resource))
-
-	// OnWarning calls f on every non-fatal error.
-	OnWarning(f func(net.Addr, error))
-
-	// OnError calls f on every fatal error. After
-	// all active handlers are called, m will stop listening and
-	// close it's connection so this function will not be called twice.
-	OnError(f func(error))
-
-	// Start causes m to start listening for mDNS packets on all interfaces on
-	// the specified port. Listening will stop if ctx is done.
-	Start(ctx context.Context, port int) error
-
-	// Send serializes and sends packet out as a multicast to all interfaces
-	// using the port that m is listening on. Note that Start must be
-	// called prior to making this call.
-	Send(message dnsmessage.Message) error
-
-	// SendTo serializes and sends packet to dst. If dst is a multicast
-	// address then packet is multicast to the corresponding group on
-	// all interfaces. Note that start must be called prior to making this
-	// call.
-	SendTo(message dnsmessage.Message, dst *net.UDPAddr) error
-
-	// Close closes all connections.
-	Close()
-}
+var defaultMDNSMulticastIPv4 = net.ParseIP("224.0.0.251")
+var defaultMDNSMulticastIPv6 = net.ParseIP("ff02::fb")
 
 type mDNS struct {
 	conn4    *internal.Conn
 	conn6    *internal.Conn
-	port     int
-	qHandler func(net.Addr, dnsmessage.Question)
-	rHandler func(net.Addr, dnsmessage.Resource)
+	qHandler func(net.Addr, []Question)
+	rHandler func(net.Addr, Resource)
 	wHandler func(net.Addr, error)
 	eHandler func(error)
-}
-
-// New creates a new object implementing the MDNS interface. Do not forget
-// to call EnableIPv4() or EnableIPv6() to enable listening on interfaces of
-// the corresponding type, or nothing will work.
-func New() MDNS {
-	m := mDNS{}
-	m.conn4 = nil
-	m.conn6 = nil
-	return &m
-}
-
-func (m *mDNS) EnableIPv4() {
-	if m.conn4 == nil {
-		m.conn4 = internal.NewIPv4Conn()
-	}
-}
-
-func (m *mDNS) EnableIPv6() {
-	if m.conn6 == nil {
-		m.conn6 = internal.NewIPv6Conn()
-	}
 }
 
 func (m *mDNS) Close() {
@@ -114,24 +39,6 @@ func (m *mDNS) Close() {
 		m.conn6.Close()
 		m.conn6 = nil
 	}
-}
-
-func (m *mDNS) SetAddress(address string) error {
-	ip := net.ParseIP(address)
-	if ip4 := ip.To4(); ip4 != nil {
-		if m.conn4 == nil {
-			return fmt.Errorf("mDNS IPv4 support is disabled")
-		}
-		m.conn4.SetIP(ip4)
-	} else if ip16 := ip.To16(); ip16 != nil {
-		if m.conn6 == nil {
-			return fmt.Errorf("mDNS IPv6 support is disabled")
-		}
-		m.conn4.SetIP(ip16)
-	} else {
-		return fmt.Errorf("not a valid IP address: %s", address)
-	}
-	return nil
 }
 
 func (m *mDNS) SetMulticastTTL(ttl int) error {
@@ -148,11 +55,11 @@ func (m *mDNS) SetMulticastTTL(ttl int) error {
 	return nil
 }
 
-func (m *mDNS) OnQuestion(f func(net.Addr, dnsmessage.Question)) {
+func (m *mDNS) OnQuestion(f func(net.Addr, []Question)) {
 	m.qHandler = f
 }
 
-func (m *mDNS) OnResource(f func(net.Addr, dnsmessage.Resource)) {
+func (m *mDNS) OnResource(f func(net.Addr, Resource)) {
 	m.rHandler = f
 }
 
@@ -166,29 +73,6 @@ func (m *mDNS) OnWarning(f func(net.Addr, error)) {
 // close it's connection so this function will not be called twice.
 func (m *mDNS) OnError(f func(error)) {
 	m.eHandler = f
-}
-
-// Send serializes and sends packet out as a multicast to all interfaces
-// using the port that m is listening on. Note that Start must be
-// called prior to making this call.
-func (m *mDNS) Send(message dnsmessage.Message) error {
-	var b, err = message.Pack()
-	if err != nil {
-		return err
-	}
-
-	var err4 error
-	if m.conn4 != nil {
-		err4 = m.conn4.Send(b)
-	}
-	var err6 error
-	if m.conn6 != nil {
-		err6 = m.conn6.Send(b)
-	}
-	if err4 != nil {
-		return err4
-	}
-	return err6
 }
 
 // SendTo serializes and sends packet to dst. If dst is a multicast
@@ -216,7 +100,30 @@ func (m *mDNS) SendTo(message dnsmessage.Message, dst *net.UDPAddr) error {
 	}
 }
 
-func (m *mDNS) initMDNSConn(port int) error {
+// Multicast serializes and sends packet out as a multicast to all interfaces
+// using the port that m is listening on. Note that Start must be
+// called prior to making this call.
+func (m *mDNS) Multicast(message dnsmessage.Message) error {
+	var b, err = message.Pack()
+	if err != nil {
+		return err
+	}
+
+	var err4 error
+	if m.conn4 != nil {
+		err4 = m.conn4.Multicast(b)
+	}
+	var err6 error
+	if m.conn6 != nil {
+		err6 = m.conn6.Multicast(b)
+	}
+	if err4 != nil {
+		return err4
+	}
+	return err6
+}
+
+func (m *mDNS) initMDNSConn() error {
 	if m.conn4 == nil && m.conn6 == nil {
 		return fmt.Errorf("no connection active")
 	}
@@ -227,22 +134,20 @@ func (m *mDNS) initMDNSConn(port int) error {
 	}
 
 	if c := m.conn4; c != nil {
-		if err = c.MakeUDPSocket(ifaces, port); err != nil {
+		if err = c.MakeUDPSocket(ifaces); err != nil {
 			return err
 		}
 	}
 	if c := m.conn6; c != nil {
-		if err = c.MakeUDPSocket(ifaces, port); err != nil {
+		if err = c.MakeUDPSocket(ifaces); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// Start causes m to start listening for MDNS packets on all interfaces on
-// the specified port. Listening will stop if ctx is done.
-func (m *mDNS) Start(ctx context.Context, port int) error {
-	if err := m.initMDNSConn(port); err != nil {
+func (m *mDNS) start(ctx context.Context) error {
+	if err := m.initMDNSConn(); err != nil {
 		m.Close()
 		return err
 	}
@@ -291,21 +196,30 @@ func (m *mDNS) Start(ctx context.Context, port int) error {
 
 			if m.qHandler != nil {
 				var questions, _ = p.AllQuestions()
-				for _, question := range questions {
-					go m.qHandler(received.Addr, question)
+				if len(questions) > 0 {
+					go m.qHandler(received.Addr, questions)
 				}
 			} else {
 				p.SkipAllQuestions()
 			}
 
 			if m.rHandler != nil {
-				p.AnswerHeader()
-				var resources, _ = p.AllAnswers()
-				for _, resource := range resources {
-					go m.rHandler(received.Addr, resource)
+				var answers, _ = p.AllAnswers()
+				var authorities, _ = p.AllAuthorities()
+				var additionals, _ = p.AllAdditionals()
+
+				if len(answers) > 0 || len(authorities) > 0 || len(additionals) > 0 {
+					var nResource = Resource{
+						Answers:     answers,
+						Authorities: authorities,
+						Additionals: additionals,
+					}
+					go m.rHandler(received.Addr, nResource)
 				}
 			} else {
 				p.SkipAllAnswers()
+				p.SkipAllAuthorities()
+				p.SkipAllAdditionals()
 			}
 		}
 	}()

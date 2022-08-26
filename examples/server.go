@@ -13,13 +13,16 @@ import (
 func main() {
 	var name = mdns.MustName("xxxx.local.")
 	_ = name
-	m := mdns.New()
-	m.EnableIPv4()
-	//m.EnableIPv6()
+	var s = mdns.NewServer()
+	s.EnableIPv4()
+	//s.EnableIPv6()
 
 	// Add all of our handlers
-	m.OnQuestion(func(addr net.Addr, question dnsmessage.Question) {
-		log4go.Println("OnQuestion", addr, question.Name, question.Type)
+	s.OnQuestion(func(addr net.Addr, questions []mdns.Question) {
+		for _, question := range questions {
+			log4go.Println("OnQuestion", addr, question.Name, question.Type)
+		}
+
 		msg := dnsmessage.Message{
 			Header: dnsmessage.Header{
 				Response: true,
@@ -69,22 +72,26 @@ func main() {
 				},
 			},
 		}
-		m.SendTo(msg, addr.(*net.UDPAddr))
+
+		fmt.Println(addr)
+		s.SendTo(msg, addr.(*net.UDPAddr))
 	})
-	m.OnResource(func(addr net.Addr, resource dnsmessage.Resource) {
-		log4go.Println("OnResource", addr, resource.Header.Name, resource.Header.Type, resource.Body)
+	s.OnResource(func(addr net.Addr, resource mdns.Resource) {
+		for _, answer := range resource.Answers {
+			log4go.Println("OnResource", addr, answer.Header.Name, answer.Header.Type, answer.Body)
+		}
 	})
 
-	m.OnWarning(func(addr net.Addr, err error) {
+	s.OnWarning(func(addr net.Addr, err error) {
 		log4go.Println("OnWarning", addr, err)
 	})
 
-	m.OnError(func(err error) {
+	s.OnError(func(err error) {
 		log4go.Println("OnError", err)
 	})
 
 	// Start up the mdns loop
-	if err := m.Start(context.Background(), mdns.DefaultPort); err != nil {
+	if err := s.Start(context.Background()); err != nil {
 		log4go.Println("Start", err)
 		return
 	}
@@ -101,7 +108,7 @@ func main() {
 		},
 	}
 
-	m.Send(msg)
+	s.Multicast(msg)
 	time.Sleep(time.Second * 1)
 	fmt.Println("===========")
 	//}
