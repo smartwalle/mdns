@@ -30,6 +30,34 @@ type mDNS struct {
 	eHandler func(error)
 }
 
+func (m *mDNS) enableIPv4(lPort int, joinGroup bool) {
+	if m.conn4 == nil {
+		var lAddr = &net.UDPAddr{
+			IP:   defaultMDNSMulticastIPv4,
+			Port: lPort,
+		}
+		var mAddr = &net.UDPAddr{
+			IP:   defaultMDNSMulticastIPv4,
+			Port: Port,
+		}
+		m.conn4 = internal.NewConn(lAddr, mAddr, &internal.IPv4PacketConnFactory{JoinGroup: joinGroup}, -1)
+	}
+}
+
+func (m *mDNS) enableIPv6(lPort int, joinGroup bool) {
+	if m.conn6 == nil {
+		var lAddr = &net.UDPAddr{
+			IP:   defaultMDNSMulticastIPv6,
+			Port: lPort,
+		}
+		var mAddr = &net.UDPAddr{
+			IP:   defaultMDNSMulticastIPv6,
+			Port: Port,
+		}
+		m.conn6 = internal.NewConn(lAddr, mAddr, &internal.IPv6PacketConnFactory{JoinGroup: joinGroup}, -1)
+	}
+}
+
 func (m *mDNS) Close() {
 	if m.conn4 != nil {
 		m.conn4.Close()
@@ -146,7 +174,7 @@ func (m *mDNS) initMDNSConn() error {
 	return nil
 }
 
-func (m *mDNS) start(ctx context.Context) error {
+func (m *mDNS) Start(ctx context.Context) error {
 	if err := m.initMDNSConn(); err != nil {
 		m.Close()
 		return err
