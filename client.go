@@ -42,28 +42,50 @@ func NewClient() Client {
 
 func (m *mClient) EnableIPv4() {
 	if m.conn4 == nil {
-		var lAddr = &net.UDPAddr{
-			IP:   net.IPv4zero,
-			Port: 0,
-		}
 		var mAddr = &net.UDPAddr{
 			IP:   mDNSMulticastIPv4,
 			Port: Port,
 		}
-		m.conn4 = internal.NewConn(lAddr, mAddr, &internal.IPv4PacketConnFactory{}, -1)
+		var lAddr = &net.UDPAddr{
+			IP:   net.IPv4zero,
+			Port: 0,
+		}
+		var rAddr = &net.UDPAddr{
+			IP:   mDNSWildcardIPv4,
+			Port: Port,
+		}
+		m.conn4 = internal.NewConn(
+			mAddr,
+			lAddr,
+			rAddr,
+			&internal.IPv4PacketConnFactory{},
+			&internal.IPv4PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv4}},
+			-1,
+		)
 	}
 }
 
 func (m *mClient) EnableIPv6() {
 	if m.conn6 == nil {
-		var lAddr = &net.UDPAddr{
-			IP:   net.IPv6zero,
-			Port: 0,
-		}
 		var mAddr = &net.UDPAddr{
 			IP:   mDNSMulticastIPv6,
 			Port: Port,
 		}
-		m.conn6 = internal.NewConn(lAddr, mAddr, &internal.IPv6PacketConnFactory{}, -1)
+		var lAddr = &net.UDPAddr{
+			IP:   net.IPv6zero,
+			Port: 0,
+		}
+		var rAddr = &net.UDPAddr{
+			IP:   mDNSWildcardIPv6,
+			Port: Port,
+		}
+		m.conn6 = internal.NewConn(
+			mAddr,
+			lAddr,
+			rAddr,
+			&internal.IPv6PacketConnFactory{},
+			&internal.IPv6PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv6}},
+			-1,
+		)
 	}
 }

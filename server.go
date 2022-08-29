@@ -76,28 +76,42 @@ func NewServer() Server {
 
 func (m *mServer) EnableIPv4() {
 	if m.conn4 == nil {
-		var lAddr = &net.UDPAddr{
-			IP:   mDNSWildcardIPv4,
-			Port: Port,
-		}
 		var mAddr = &net.UDPAddr{
 			IP:   mDNSMulticastIPv4,
 			Port: Port,
 		}
-		m.conn4 = internal.NewConn(lAddr, mAddr, &internal.IPv4PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv4}}, -1)
+		var lAddr = &net.UDPAddr{
+			IP:   mDNSWildcardIPv4,
+			Port: Port,
+		}
+		m.conn4 = internal.NewConn(
+			mAddr,
+			lAddr,
+			nil,
+			&internal.IPv4PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv4}},
+			nil,
+			-1,
+		)
 	}
 }
 
 func (m *mServer) EnableIPv6() {
 	if m.conn6 == nil {
-		var lAddr = &net.UDPAddr{
-			IP:   mDNSWildcardIPv6,
-			Port: Port,
-		}
 		var mAddr = &net.UDPAddr{
 			IP:   mDNSMulticastIPv6,
 			Port: Port,
 		}
-		m.conn6 = internal.NewConn(lAddr, mAddr, &internal.IPv6PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv6}}, -1)
+		var lAddr = &net.UDPAddr{
+			IP:   mDNSWildcardIPv6,
+			Port: Port,
+		}
+		m.conn6 = internal.NewConn(
+			mAddr,
+			lAddr,
+			nil,
+			&internal.IPv6PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv6}},
+			nil,
+			-1,
+		)
 	}
 }

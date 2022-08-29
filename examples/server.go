@@ -92,5 +92,56 @@ func main() {
 		return
 	}
 
+	var m = dnsmessage.Message{
+		Header: dnsmessage.Header{
+			Response: true,
+		},
+		Answers: []dnsmessage.Resource{
+			{
+				Header: dnsmessage.ResourceHeader{
+					Name:  name,
+					Type:  dnsmessage.TypePTR,
+					Class: dnsmessage.ClassINET,
+				},
+				Body: &dnsmessage.PTRResource{
+					PTR: name,
+				},
+			},
+			{
+				Header: dnsmessage.ResourceHeader{
+					Name:  name,
+					Type:  dnsmessage.TypeA,
+					Class: dnsmessage.ClassINET,
+				},
+				Body: &dnsmessage.AResource{A: mdns.IPv4ToBytes(net.ParseIP("192.168.1.99"))},
+			},
+			{
+				Header: dnsmessage.ResourceHeader{
+					Name:  name,
+					Type:  dnsmessage.TypeAAAA,
+					Class: dnsmessage.ClassINET,
+				},
+				Body: &dnsmessage.AAAAResource{AAAA: mdns.IPv6ToBytes(net.ParseIP("fe80::10ac:9ab5:ee60:9cfd"))},
+			},
+			{
+				Header: dnsmessage.ResourceHeader{
+					Name:  name,
+					Type:  dnsmessage.TypeSRV,
+					Class: dnsmessage.ClassINET,
+				},
+				Body: &dnsmessage.SRVResource{Port: 8000, Target: name},
+			},
+			{
+				Header: dnsmessage.ResourceHeader{
+					Name:  name,
+					Type:  dnsmessage.TypeTXT,
+					Class: dnsmessage.ClassINET,
+				},
+				Body: &dnsmessage.TXTResource{TXT: []string{"My awesome service"}},
+			},
+		},
+	}
+	server.Multicast(m)
+
 	select {}
 }

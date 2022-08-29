@@ -23,6 +23,7 @@ func main() {
 
 	var found = make(chan Resource, 1)
 	client.OnResource(func(addr net.Addr, resource mdns.Resource) {
+		log4go.Println(addr)
 		for _, answer := range resource.Answers {
 			if answer.Header.Name.String() != name.String() {
 				continue
@@ -61,7 +62,7 @@ func main() {
 	}
 
 	select {
-	case <-time.After(time.Second * 3):
+	case <-time.After(time.Second * 30):
 		log4go.Println("Timeout")
 	case resource := <-found:
 		for _, answer := range resource.Answers {

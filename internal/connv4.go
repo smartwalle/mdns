@@ -22,8 +22,8 @@ type IPv4PacketConnFactory struct {
 	Group *net.UDPAddr
 }
 
-func (f *IPv4PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, laddr *net.UDPAddr, ttl int) (net.PacketConn, error) {
-	conn, err := net.ListenUDP("udp4", laddr)
+func (f *IPv4PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, addr *net.UDPAddr, ttl int) (net.PacketConn, error) {
+	conn, err := net.ListenUDP("udp4", addr)
 	if err != nil {
 		return nil, err
 	}

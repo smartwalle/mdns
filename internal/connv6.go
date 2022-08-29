@@ -22,8 +22,8 @@ type IPv6PacketConnFactory struct {
 	Group *net.UDPAddr
 }
 
-func (f *IPv6PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, laddr *net.UDPAddr, ttl int) (net.PacketConn, error) {
-	conn, err := net.ListenUDP("udp6", laddr)
+func (f *IPv6PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, addr *net.UDPAddr, ttl int) (net.PacketConn, error) {
+	conn, err := net.ListenUDP("udp6", addr)
 	if err != nil {
 		return nil, err
 	}

@@ -8,29 +8,29 @@ import (
 )
 
 type PacketConnFactory interface {
-	MakeUDPSocket(iface []net.Interface, laddr *net.UDPAddr, ttl int) (net.PacketConn, error)
+	MakeUDPSocket(iface []net.Interface, addr *net.UDPAddr, ttl int) (net.PacketConn, error)
 }
 
-func NewConn(lAddr, mAddr *net.UDPAddr, factory PacketConnFactory, ttl int) *Conn {
+func NewConn(mAddr, lAddr, rAddr *net.UDPAddr, lFactory, rFactory PacketConnFactory, ttl int) *Conn {
 	return &Conn{
-		lAddr:   lAddr,
-		mAddr:   mAddr,
-		factory: factory,
-		ttl:     ttl,
+		mAddr:    mAddr,
+		lAddr:    lAddr,
+		rAddr:    rAddr,
+		lFactory: lFactory,
+		rFactory: rFactory,
+		ttl:      ttl,
 	}
 }
 
 type Conn struct {
-	lAddr   *net.UDPAddr
-	mAddr   *net.UDPAddr
-	ttl     int
-	factory PacketConnFactory
-	conn    net.PacketConn
-	rConn   net.PacketConn
-}
-
-func (c *Conn) SetIP(ip net.IP) {
-	c.lAddr.IP = ip
+	mAddr    *net.UDPAddr
+	lAddr    *net.UDPAddr
+	rAddr    *net.UDPAddr
+	lFactory PacketConnFactory
+	rFactory PacketConnFactory
+	lConn    net.PacketConn
+	rConn    net.PacketConn
+	ttl      int
 }
 
 func (c *Conn) SetMulticastTTL(ttl int) error {
@@ -42,17 +42,23 @@ func (c *Conn) SetMulticastTTL(ttl int) error {
 }
 
 func (c *Conn) Close() error {
-	if c.conn == nil {
-		return nil
+	if c.lConn != nil {
+		c.lConn.Close()
+		c.lConn = nil
 	}
-	if err := c.conn.Close(); err != nil {
-		return err
+	if c.rConn != nil {
+		c.rConn.Close()
+		c.rConn = nil
 	}
 	return nil
 }
 
 func (c *Conn) Listen(nPacket chan Packet) {
-	go c.listen(c.conn, nPacket)
+	go c.listen(c.lConn, nPacket)
+
+	if c.rConn != nil {
+		go c.listen(c.rConn, nPacket)
+	}
 }
 
 func (c *Conn) listen(conn net.PacketConn, nPacket chan Packet) {
@@ -74,7 +80,7 @@ func (c *Conn) listen(conn net.PacketConn, nPacket chan Packet) {
 }
 
 func (c *Conn) SendTo(b []byte, dst *net.UDPAddr) error {
-	_, err := c.conn.WriteTo(b, dst)
+	_, err := c.lConn.WriteTo(b, dst)
 	if err != nil {
 		if err, ok := err.(*net.OpError); ok {
 			if err, ok := err.Err.(*os.SyscallError); ok {
@@ -94,11 +100,24 @@ func (c *Conn) Multicast(b []byte) error {
 	return c.SendTo(b, c.mAddr)
 }
 
-func (c *Conn) MakeUDPSocket(ifaces []net.Interface) error {
-	conn, err := c.factory.MakeUDPSocket(ifaces, c.lAddr, c.ttl)
+func (c *Conn) MakeUDPSocket(ifaces []net.Interface) (err error) {
+	var lConn net.PacketConn
+	var rConn net.PacketConn
+
+	lConn, err = c.lFactory.MakeUDPSocket(ifaces, c.lAddr, c.ttl)
 	if err != nil {
 		return err
 	}
-	c.conn = conn
+
+	if c.rFactory != nil && c.rAddr != nil {
+		rConn, err = c.rFactory.MakeUDPSocket(ifaces, c.rAddr, c.ttl)
+		if err != nil {
+			lConn.Close()
+			return err
+		}
+	}
+
+	c.lConn = lConn
+	c.rConn = rConn
 	return nil
 }
