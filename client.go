@@ -40,9 +40,9 @@ func NewClient() Client {
 }
 
 func (m *mClient) EnableIPv4() {
-	m.enableIPv4(0, false)
+	m.enableIPv4(0)
 }
 
 func (m *mClient) EnableIPv6() {
-	m.enableIPv6(0, false)
+	m.enableIPv6(0)
 }

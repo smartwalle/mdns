@@ -74,9 +74,9 @@ func NewServer() Server {
 }
 
 func (m *mServer) EnableIPv4() {
-	m.enableIPv4(Port, true)
+	m.enableIPv4(Port)
 }
 
 func (m *mServer) EnableIPv6() {
-	m.enableIPv6(Port, true)
+	m.enableIPv6(Port)
 }
