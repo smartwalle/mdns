@@ -56,7 +56,7 @@ func main() {
 			},
 		},
 	}
-	if err := client.Multicast(m); err != nil {
+	if err := client.Send(m); err != nil {
 		log4go.Println("Multicast Error:", err)
 		return
 	}

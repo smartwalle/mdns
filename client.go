@@ -20,23 +20,42 @@ type Client interface {
 
 	Start(ctx context.Context) error
 
-	Multicast(question Question) error
+	Send(question Question) error
 
 	Close()
 }
 
+type ClientOption func(client *mClient)
+
+// WithListenMulticast 用于开启接收 Multicast 数据
+func WithListenMulticast() ClientOption {
+	return func(client *mClient) {
+		client.rFactory4 = &internal.IPv4PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv4}}
+		client.rFactory6 = &internal.IPv6PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv6}}
+	}
+}
+
 type mClient struct {
 	*mDNS
+	rFactory4 internal.PacketConnFactory
+	rFactory6 internal.PacketConnFactory
 }
 
 // NewClient creates a new object implementing the Client interface. Do not forget
 // to call EnableIPv4() or EnableIPv6() to enable listening on interfaces of
 // the corresponding type, or nothing will work.
-func NewClient() Client {
+func NewClient(opts ...ClientOption) Client {
 	var nClient = &mClient{}
 	nClient.mDNS = &mDNS{}
 	nClient.mDNS.conn4 = nil
 	nClient.mDNS.conn6 = nil
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(nClient)
+		}
+	}
+
 	return nClient
 }
 
@@ -59,7 +78,7 @@ func (m *mClient) EnableIPv4() {
 			lAddr,
 			rAddr,
 			&internal.IPv4PacketConnFactory{},
-			&internal.IPv4PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv4}},
+			m.rFactory4,
 			-1,
 		)
 	}
@@ -84,13 +103,13 @@ func (m *mClient) EnableIPv6() {
 			lAddr,
 			rAddr,
 			&internal.IPv6PacketConnFactory{},
-			&internal.IPv6PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv6}},
+			m.rFactory6,
 			-1,
 		)
 	}
 }
 
-func (m *mClient) Multicast(question Question) error {
+func (m *mClient) Send(question Question) error {
 	var message = dnsmessage.Message{
 		Header:    question.Header,
 		Questions: question.Questions,
