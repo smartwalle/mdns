@@ -26,6 +26,7 @@ type Conn struct {
 	ttl     int
 	factory PacketConnFactory
 	conn    net.PacketConn
+	rConn   net.PacketConn
 }
 
 func (c *Conn) SetIP(ip net.IP) {
@@ -50,24 +51,26 @@ func (c *Conn) Close() error {
 	return nil
 }
 
-func (c *Conn) Listen() <-chan Packet {
-	ch := make(chan Packet, 1)
+func (c *Conn) Listen(nPacket chan Packet) {
+	go c.listen(c.conn, nPacket)
+}
 
-	go func(conn net.PacketConn) {
-		payload := make([]byte, 1<<16)
-		for {
-			n, src, err := conn.ReadFrom(payload)
-			if err != nil {
-				ch <- Packet{Error: err}
-				return
+func (c *Conn) listen(conn net.PacketConn, nPacket chan Packet) {
+	var payload = make([]byte, 1<<16)
+	for {
+		n, src, err := conn.ReadFrom(payload)
+		if err != nil {
+			select {
+			case nPacket <- Packet{Error: err}:
+			default:
 			}
-			ch <- Packet{
-				Data: append([]byte(nil), payload[:n]...),
-				Addr: src,
-			}
+			return
 		}
-	}(c.conn)
-	return ch
+		select {
+		case nPacket <- Packet{Data: append([]byte(nil), payload[:n]...), Addr: src}:
+		default:
+		}
+	}
 }
 
 func (c *Conn) SendTo(b []byte, dst *net.UDPAddr) error {

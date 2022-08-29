@@ -159,14 +159,14 @@ func (m *mDNS) Start(ctx context.Context) error {
 		// the goroutines started by Listen() to exit.
 		defer m.Close()
 
-		var chan4 <-chan internal.Packet
-		var chan6 <-chan internal.Packet
+		var nPacket = make(chan internal.Packet, 1)
+		defer close(nPacket)
 
 		if m.conn4 != nil {
-			chan4 = m.conn4.Listen()
+			m.conn4.Listen(nPacket)
 		}
 		if m.conn6 != nil {
-			chan6 = m.conn6.Listen()
+			m.conn6.Listen(nPacket)
 		}
 
 		var p = dnsmessage.Parser{}
@@ -177,9 +177,7 @@ func (m *mDNS) Start(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return
-			case received = <-chan4:
-				break
-			case received = <-chan6:
+			case received = <-nPacket:
 				break
 			}
 
