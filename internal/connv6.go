@@ -31,14 +31,14 @@ func (f *IPv6PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, laddr *net
 	pConn := ipv6.NewPacketConn(conn)
 	if ttl >= 0 {
 		if err := pConn.SetMulticastHopLimit(ttl); err != nil {
-			_ = pConn.Close()
+			pConn.Close()
 			return nil, err
 		}
 	}
 
-	pConn.SetMulticastLoopback(true)
-
 	if f.Group != nil {
+		pConn.SetMulticastLoopback(true)
+
 		for i, iface := range ifaces {
 			if iface.Flags&net.FlagMulticast == 0 || iface.Flags&net.FlagPointToPoint == net.FlagPointToPoint {
 				continue

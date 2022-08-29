@@ -2,6 +2,7 @@ package mdns
 
 import (
 	"context"
+	"github.com/smartwalle/mdns/internal"
 	"golang.org/x/net/dns/dnsmessage"
 	"net"
 )
@@ -40,11 +41,29 @@ func NewClient() Client {
 }
 
 func (m *mClient) EnableIPv4() {
-	var lAddr = &net.UDPAddr{IP: net.IPv4zero, Port: 0}
-	m.enableIPv4(lAddr)
+	if m.conn4 == nil {
+		var lAddr = &net.UDPAddr{
+			IP:   net.IPv4zero,
+			Port: 0,
+		}
+		var mAddr = &net.UDPAddr{
+			IP:   mDNSMulticastIPv4,
+			Port: Port,
+		}
+		m.conn4 = internal.NewConn(lAddr, mAddr, &internal.IPv4PacketConnFactory{}, -1)
+	}
 }
 
 func (m *mClient) EnableIPv6() {
-	var lAddr = &net.UDPAddr{IP: net.IPv6zero, Port: 0}
-	m.enableIPv6(lAddr)
+	if m.conn6 == nil {
+		var lAddr = &net.UDPAddr{
+			IP:   net.IPv6zero,
+			Port: 0,
+		}
+		var mAddr = &net.UDPAddr{
+			IP:   mDNSMulticastIPv6,
+			Port: Port,
+		}
+		m.conn6 = internal.NewConn(lAddr, mAddr, &internal.IPv6PacketConnFactory{}, -1)
+	}
 }

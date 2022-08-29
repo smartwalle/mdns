@@ -36,9 +36,9 @@ func (f *IPv4PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, laddr *net
 		}
 	}
 
-	pConn.SetMulticastLoopback(true)
-
 	if f.Group != nil {
+		pConn.SetMulticastLoopback(true)
+
 		for i, iface := range ifaces {
 			if iface.Flags&net.FlagMulticast == 0 || iface.Flags&net.FlagPointToPoint == net.FlagPointToPoint {
 				continue

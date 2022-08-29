@@ -33,26 +33,6 @@ type mDNS struct {
 	eHandler func(error)
 }
 
-func (m *mDNS) enableIPv4(lAddr *net.UDPAddr) {
-	if m.conn4 == nil {
-		var mAddr = &net.UDPAddr{
-			IP:   mDNSMulticastIPv4,
-			Port: Port,
-		}
-		m.conn4 = internal.NewConn(lAddr, mAddr, &internal.IPv4PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv4}}, -1)
-	}
-}
-
-func (m *mDNS) enableIPv6(lAddr *net.UDPAddr) {
-	if m.conn6 == nil {
-		var mAddr = &net.UDPAddr{
-			IP:   mDNSMulticastIPv6,
-			Port: Port,
-		}
-		m.conn6 = internal.NewConn(lAddr, mAddr, &internal.IPv6PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv6}}, -1)
-	}
-}
-
 func (m *mDNS) Close() {
 	if m.conn4 != nil {
 		m.conn4.Close()
