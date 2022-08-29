@@ -48,12 +48,12 @@ type Server interface {
 	// address then packet is multicast to the corresponding group on
 	// all interfaces. Note that start must be called prior to making this
 	// call.
-	SendTo(message dnsmessage.Message, dst *net.UDPAddr) error
+	SendTo(resource Resource, dst *net.UDPAddr) error
 
 	// Multicast serializes and sends packet out as a multicast to all interfaces
 	// using the port that m is listening on. Note that Start must be
 	// called prior to making this call.
-	Multicast(message dnsmessage.Message) error
+	Multicast(resource Resource) error
 
 	// Close closes all connections.
 	Close()
@@ -114,4 +114,24 @@ func (m *mServer) EnableIPv6() {
 			-1,
 		)
 	}
+}
+
+func (m *mServer) SendTo(resource Resource, dst *net.UDPAddr) error {
+	var message = dnsmessage.Message{
+		Header:      resource.Header,
+		Answers:     resource.Answers,
+		Authorities: resource.Authorities,
+		Additionals: resource.Additionals,
+	}
+	return m.mDNS.SendTo(message, dst)
+}
+
+func (m *mServer) Multicast(resource Resource) error {
+	var message = dnsmessage.Message{
+		Header:      resource.Header,
+		Answers:     resource.Answers,
+		Authorities: resource.Authorities,
+		Additionals: resource.Additionals,
+	}
+	return m.mDNS.Multicast(message)
 }

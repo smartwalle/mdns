@@ -46,7 +46,7 @@ func main() {
 		return
 	}
 
-	var m = dnsmessage.Message{
+	var m = mdns.Question{
 		Header: dnsmessage.Header{},
 		Questions: []dnsmessage.Question{
 			{

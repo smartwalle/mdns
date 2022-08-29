@@ -20,7 +20,7 @@ type Client interface {
 
 	Start(ctx context.Context) error
 
-	Multicast(message dnsmessage.Message) error
+	Multicast(question Question) error
 
 	Close()
 }
@@ -88,4 +88,12 @@ func (m *mClient) EnableIPv6() {
 			-1,
 		)
 	}
+}
+
+func (m *mClient) Multicast(question Question) error {
+	var message = dnsmessage.Message{
+		Header:    question.Header,
+		Questions: question.Questions,
+	}
+	return m.mDNS.Multicast(message)
 }

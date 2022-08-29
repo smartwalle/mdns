@@ -19,7 +19,7 @@ func main() {
 			log4go.Println("OnQuestion", addr, q.Name, q.Type)
 
 			if q.Name.String() == name.String() {
-				var m = dnsmessage.Message{
+				var m = mdns.Resource{
 					Header: dnsmessage.Header{
 						Response: true,
 					},
@@ -92,7 +92,7 @@ func main() {
 		return
 	}
 
-	var m = dnsmessage.Message{
+	var m = mdns.Resource{
 		Header: dnsmessage.Header{
 			Response: true,
 		},
