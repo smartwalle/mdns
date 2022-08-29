@@ -40,9 +40,11 @@ func NewClient() Client {
 }
 
 func (m *mClient) EnableIPv4() {
-	m.enableIPv4(0)
+	var lAddr = &net.UDPAddr{IP: net.IPv4zero, Port: 0}
+	m.enableIPv4(lAddr)
 }
 
 func (m *mClient) EnableIPv6() {
-	m.enableIPv6(0)
+	var lAddr = &net.UDPAddr{IP: net.IPv6zero, Port: 0}
+	m.enableIPv6(lAddr)
 }

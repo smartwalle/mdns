@@ -74,9 +74,11 @@ func NewServer() Server {
 }
 
 func (m *mServer) EnableIPv4() {
-	m.enableIPv4(Port)
+	var lAddr = &net.UDPAddr{IP: mDNSWildcardIPv4, Port: Port}
+	m.enableIPv4(lAddr)
 }
 
 func (m *mServer) EnableIPv6() {
-	m.enableIPv6(Port)
+	var lAddr = &net.UDPAddr{IP: mDNSWildcardIPv6, Port: Port}
+	m.enableIPv6(lAddr)
 }

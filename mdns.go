@@ -33,12 +33,8 @@ type mDNS struct {
 	eHandler func(error)
 }
 
-func (m *mDNS) enableIPv4(lPort int) {
+func (m *mDNS) enableIPv4(lAddr *net.UDPAddr) {
 	if m.conn4 == nil {
-		var lAddr = &net.UDPAddr{
-			IP:   mDNSWildcardIPv4,
-			Port: lPort,
-		}
 		var mAddr = &net.UDPAddr{
 			IP:   mDNSMulticastIPv4,
 			Port: Port,
@@ -47,12 +43,8 @@ func (m *mDNS) enableIPv4(lPort int) {
 	}
 }
 
-func (m *mDNS) enableIPv6(lPort int) {
+func (m *mDNS) enableIPv6(lAddr *net.UDPAddr) {
 	if m.conn6 == nil {
-		var lAddr = &net.UDPAddr{
-			IP:   mDNSWildcardIPv6,
-			Port: lPort,
-		}
 		var mAddr = &net.UDPAddr{
 			IP:   mDNSMulticastIPv6,
 			Port: Port,
