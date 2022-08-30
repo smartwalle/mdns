@@ -6,6 +6,6 @@ import "net"
 // information about their interface / source address through a channel.
 type Packet struct {
 	Addr  net.Addr
-	Data  []byte
 	Error error
+	Data  []byte
 }
