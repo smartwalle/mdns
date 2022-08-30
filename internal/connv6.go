@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"golang.org/x/net/ipv6"
 	"net"
 )
@@ -39,14 +40,17 @@ func (f *IPv6PacketConnFactory) MakeUDPSocket(ifaces []net.Interface, addr *net.
 	if f.Group != nil {
 		pConn.SetMulticastLoopback(true)
 
-		for i, iface := range ifaces {
-			if iface.Flags&net.FlagMulticast == 0 || iface.Flags&net.FlagPointToPoint == net.FlagPointToPoint {
-				continue
+		var errCount = 0
+
+		for i := range ifaces {
+			if nErr := pConn.JoinGroup(&ifaces[i], f.Group); nErr != nil {
+				errCount += 1
 			}
-			if err := pConn.JoinGroup(&ifaces[i], f.Group); err != nil {
-				pConn.Close()
-				return nil, err
-			}
+		}
+
+		if errCount == len(ifaces) {
+			pConn.Close()
+			return nil, fmt.Errorf("failed to join multicast group on all interfaces")
 		}
 	}
 	return &ipv6PacketConn{PacketConn: pConn}, nil

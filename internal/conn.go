@@ -41,6 +41,18 @@ func (c *Conn) SetMulticastTTL(ttl int) error {
 	return nil
 }
 
+func (c *Conn) SetPort(mPort, lPort, rPort int) {
+	if c.mAddr != nil {
+		c.mAddr.Port = mPort
+	}
+	if c.lAddr != nil {
+		c.lAddr.Port = lPort
+	}
+	if c.rAddr != nil {
+		c.rAddr.Port = rPort
+	}
+}
+
 func (c *Conn) Close() error {
 	if c.lConn != nil {
 		c.lConn.Close()
