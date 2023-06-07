@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// This is a fork of https://fuchsia.googlesource.com/fuchsia/+/refs/heads/main/tools/net/mdns/mdns.go written in a
-// more extendable way
+// This is a fork of https://fuchsia.googlesource.com/fuchsia/+/refs/heads/main/tools/net/mdns/mdns.go
 
 package mdns
 
