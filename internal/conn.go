@@ -86,7 +86,7 @@ func (c *Conn) listen(conn net.PacketConn, packets chan Packet, quit chan struct
 		}
 		select {
 		case <-quit:
-		case packets <- Packet{Data: payload[:n], Addr: src}:
+		case packets <- Packet{Data: append([]byte(nil), payload[:n]...), Addr: src}:
 		}
 	}
 }
