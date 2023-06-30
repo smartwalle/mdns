@@ -65,28 +65,28 @@ func (c *Conn) Close() error {
 	return nil
 }
 
-func (c *Conn) Listen(nPacket chan Packet) {
-	go c.listen(c.lConn, nPacket)
+func (c *Conn) Listen(packets chan Packet, quit chan struct{}) {
+	go c.listen(c.lConn, packets, quit)
 
 	if c.rConn != nil {
-		go c.listen(c.rConn, nPacket)
+		go c.listen(c.rConn, packets, quit)
 	}
 }
 
-func (c *Conn) listen(conn net.PacketConn, nPacket chan Packet) {
+func (c *Conn) listen(conn net.PacketConn, packets chan Packet, quit chan struct{}) {
 	var payload = make([]byte, 1<<16)
 	for {
 		n, src, err := conn.ReadFrom(payload)
 		if err != nil {
 			select {
-			case nPacket <- Packet{Error: err}:
-			default:
+			case <-quit:
+			case packets <- Packet{Error: err}:
 			}
 			return
 		}
 		select {
-		case nPacket <- Packet{Data: append([]byte(nil), payload[:n]...), Addr: src}:
-		default:
+		case <-quit:
+		case packets <- Packet{Data: payload[:n], Addr: src}:
 		}
 	}
 }

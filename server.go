@@ -26,19 +26,19 @@ type Server interface {
 	// Must be no greater than 255.
 	SetMulticastTTL(ttl int) error
 
-	// OnQuestion calls f on every Question received.
-	OnQuestion(f func(net.Addr, Question))
+	// OnQuestion calls handler on every Question received.
+	OnQuestion(handler func(net.Addr, Question))
 
-	// OnResource calls f on every Resource received.
-	OnResource(f func(net.Addr, Resource))
+	// OnResource calls handler on every Resource received.
+	OnResource(handler func(net.Addr, Resource))
 
-	// OnWarning calls f on every non-fatal error.
-	OnWarning(f func(net.Addr, error))
+	// OnWarning calls handler on every non-fatal error.
+	OnWarning(handler func(net.Addr, error))
 
-	// OnError calls f on every fatal error. After
+	// OnError calls handler on every fatal error. After
 	// all active handlers are called, m will stop listening and
 	// close it's connection so this function will not be called twice.
-	OnError(f func(error))
+	OnError(handler func(error))
 
 	// Start causes m to start listening for mDNS packets on all interfaces on
 	// the specified port. Listening will stop if ctx is done.

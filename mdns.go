@@ -57,24 +57,24 @@ func (m *mDNS) SetMulticastTTL(ttl int) error {
 	return nil
 }
 
-func (m *mDNS) OnQuestion(f func(net.Addr, Question)) {
-	m.qHandler = f
+func (m *mDNS) OnQuestion(handler func(net.Addr, Question)) {
+	m.qHandler = handler
 }
 
-func (m *mDNS) OnResource(f func(net.Addr, Resource)) {
-	m.rHandler = f
+func (m *mDNS) OnResource(handler func(net.Addr, Resource)) {
+	m.rHandler = handler
 }
 
 // OnWarning calls f on every non-fatal error.
-func (m *mDNS) OnWarning(f func(net.Addr, error)) {
-	m.wHandler = f
+func (m *mDNS) OnWarning(handler func(net.Addr, error)) {
+	m.wHandler = handler
 }
 
 // OnError calls f on every fatal error. After
 // all active handlers are called, m will stop listening and
 // close it's connection so this function will not be called twice.
-func (m *mDNS) OnError(f func(error)) {
-	m.eHandler = f
+func (m *mDNS) OnError(handler func(error)) {
+	m.eHandler = handler
 }
 
 // SendTo serializes and sends packet to dst. If dst is a multicast
@@ -158,17 +158,19 @@ func (m *mDNS) Start(ctx context.Context) error {
 		// the goroutines started by Listen() to exit.
 		defer m.Close()
 
-		var nPacket = make(chan internal.Packet, 1)
-		defer close(nPacket)
+		var quit = make(chan struct{})
+		defer close(quit)
+
+		var packets = make(chan internal.Packet, 1)
 
 		if m.conn4 != nil {
-			m.conn4.Listen(nPacket)
+			m.conn4.Listen(packets, quit)
 		}
 		if m.conn6 != nil {
-			m.conn6.Listen(nPacket)
+			m.conn6.Listen(packets, quit)
 		}
 
-		var p = dnsmessage.Parser{}
+		var parser = &dnsmessage.Parser{}
 
 		for {
 			var received internal.Packet
@@ -176,8 +178,7 @@ func (m *mDNS) Start(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return
-			case received = <-nPacket:
-				break
+			case received = <-packets:
 			}
 
 			if received.Error != nil {
@@ -190,7 +191,7 @@ func (m *mDNS) Start(ctx context.Context) error {
 			var header dnsmessage.Header
 			var err error
 
-			if header, err = p.Start(received.Data); err != nil {
+			if header, err = parser.Start(received.Data); err != nil {
 				if m.wHandler != nil {
 					go m.wHandler(received.Addr, err)
 				}
@@ -198,7 +199,7 @@ func (m *mDNS) Start(ctx context.Context) error {
 			}
 
 			if m.qHandler != nil {
-				var questions, _ = p.AllQuestions()
+				var questions, _ = parser.AllQuestions()
 				if len(questions) > 0 {
 					var nQuestion = Question{
 						Header:    header,
@@ -207,13 +208,13 @@ func (m *mDNS) Start(ctx context.Context) error {
 					go m.qHandler(received.Addr, nQuestion)
 				}
 			} else {
-				p.SkipAllQuestions()
+				parser.SkipAllQuestions()
 			}
 
 			if m.rHandler != nil {
-				var answers, _ = p.AllAnswers()
-				var authorities, _ = p.AllAuthorities()
-				var additionals, _ = p.AllAdditionals()
+				var answers, _ = parser.AllAnswers()
+				var authorities, _ = parser.AllAuthorities()
+				var additionals, _ = parser.AllAdditionals()
 
 				if len(answers) > 0 || len(authorities) > 0 || len(additionals) > 0 {
 					var nResource = Resource{
@@ -225,9 +226,9 @@ func (m *mDNS) Start(ctx context.Context) error {
 					go m.rHandler(received.Addr, nResource)
 				}
 			} else {
-				p.SkipAllAnswers()
-				p.SkipAllAuthorities()
-				p.SkipAllAdditionals()
+				parser.SkipAllAnswers()
+				parser.SkipAllAuthorities()
+				parser.SkipAllAdditionals()
 			}
 		}
 	}()

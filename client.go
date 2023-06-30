@@ -12,11 +12,11 @@ type Client interface {
 
 	EnableIPv6()
 
-	OnResource(f func(net.Addr, Resource))
+	OnResource(handler func(net.Addr, Resource))
 
-	OnWarning(f func(net.Addr, error))
+	OnWarning(handler func(net.Addr, error))
 
-	OnError(f func(error))
+	OnError(handler func(error))
 
 	Start(ctx context.Context) error
 
