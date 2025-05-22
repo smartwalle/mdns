@@ -22,7 +22,7 @@ type Client interface {
 
 	Send(question Question) error
 
-	Close()
+	Close() error
 }
 
 type ClientOption func(client *mClient)

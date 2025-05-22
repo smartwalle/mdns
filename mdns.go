@@ -32,15 +32,22 @@ type mDNS struct {
 	eHandler func(error)
 }
 
-func (m *mDNS) Close() {
+func (m *mDNS) Close() error {
+	var err4 error
 	if m.conn4 != nil {
-		m.conn4.Close()
+		err4 = m.conn4.Close()
 		m.conn4 = nil
 	}
+	var err6 error
 	if m.conn6 != nil {
-		m.conn6.Close()
+		err6 = m.conn6.Close()
 		m.conn6 = nil
 	}
+
+	if err4 != nil {
+		return err4
+	}
+	return err6
 }
 
 func (m *mDNS) SetMulticastTTL(ttl int) error {
@@ -233,6 +240,5 @@ func (m *mDNS) Start(ctx context.Context) error {
 }
 
 func (m *mDNS) Stop(ctx context.Context) error {
-	m.Close()
-	return nil
+	return m.Close()
 }
