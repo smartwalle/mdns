@@ -27,8 +27,8 @@ type Client interface {
 
 type ClientOption func(client *mClient)
 
-// WithListenMulticast 用于开启接收 Multicast 数据
-func WithListenMulticast() ClientOption {
+// WithReceiveMulticast 用于开启接收 Multicast 数据
+func WithReceiveMulticast() ClientOption {
 	return func(client *mClient) {
 		client.rFactory4 = &internal.IPv4PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv4}}
 		client.rFactory6 = &internal.IPv6PacketConnFactory{Group: &net.UDPAddr{IP: mDNSMulticastIPv6}}

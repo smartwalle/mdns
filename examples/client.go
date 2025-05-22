@@ -7,13 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"time"
 )
-
-type Resource struct {
-	mdns.Resource
-	Addr net.Addr
-}
 
 func main() {
 	var name = mdns.MustName("smartwalle.local.")
@@ -21,14 +15,14 @@ func main() {
 	var client = mdns.NewClient()
 	client.EnableIPv4()
 
-	var found = make(chan Resource, 1)
 	client.OnResource(func(addr net.Addr, resource mdns.Resource) {
 		slog.Info("OnResource", slog.Any("addr", addr))
 		for _, answer := range resource.Answers {
 			if answer.Header.Name.String() != name.String() {
 				continue
 			}
-			found <- Resource{Resource: resource, Addr: addr}
+
+			slog.Info("Answer", slog.Any("addr", addr), slog.Any("name", answer.Header.Name), slog.Any("type", answer.Header.Type), slog.Any("body", answer.Body))
 		}
 	})
 
@@ -62,12 +56,5 @@ func main() {
 		return
 	}
 
-	select {
-	case <-time.After(time.Second * 30):
-		slog.Info("Timeout")
-	case resource := <-found:
-		for _, answer := range resource.Answers {
-			slog.Info("Answer", slog.Any("addr", resource.Addr), slog.Any("name", answer.Header.Name), slog.Any("type", answer.Header.Type), slog.Any("body", answer.Body))
-		}
-	}
+	select {}
 }
