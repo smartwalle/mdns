@@ -55,8 +55,8 @@ type Server interface {
 	// called prior to making this call.
 	Multicast(resource Resource) error
 
-	// Close closes all connections.
-	Close()
+	// Stop closes all connections.
+	Stop(ctx context.Context) error
 }
 
 type mServer struct {

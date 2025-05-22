@@ -234,3 +234,8 @@ func (m *mDNS) Start(ctx context.Context) error {
 	}()
 	return nil
 }
+
+func (m *mDNS) Stop(ctx context.Context) error {
+	m.Close()
+	return nil
+}

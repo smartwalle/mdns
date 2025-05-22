@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"github.com/smartwalle/log4go"
 	"github.com/smartwalle/mdns"
 	"golang.org/x/net/dns/dnsmessage"
+	"log/slog"
 	"net"
 )
 
@@ -16,10 +16,10 @@ func main() {
 
 	server.OnQuestion(func(addr net.Addr, question mdns.Question) {
 		for _, q := range question.Questions {
-			log4go.Println("OnQuestion", addr, q.Name, q.Type)
+			slog.Info("OnQuestion", slog.Any("addr", addr), slog.Any("name", q.Name), slog.Any("type", q.Type))
 
 			if q.Name.String() == name.String() {
-				var m = mdns.Resource{
+				var resource = mdns.Resource{
 					Header: dnsmessage.Header{
 						Response: true,
 					},
@@ -68,31 +68,33 @@ func main() {
 						},
 					},
 				}
-				server.SendTo(m, addr.(*net.UDPAddr))
+				server.SendTo(resource, addr.(*net.UDPAddr))
 			}
 		}
 	})
 
 	server.OnResource(func(addr net.Addr, resource mdns.Resource) {
 		for _, answer := range resource.Answers {
-			log4go.Println("OnResource", addr, answer.Header.Name, answer.Header.Type, answer.Body)
+			if answer.Header.Name == name {
+				slog.Info("OnResource", slog.Any("addr", addr), slog.Any("name", answer.Header.Name), slog.Any("type", answer.Header.Type), slog.Any("body", answer.Body))
+			}
 		}
 	})
 
 	server.OnWarning(func(addr net.Addr, err error) {
-		log4go.Println("OnWarning", addr, err)
+		slog.Info("OnWarning", slog.Any("addr", addr), slog.Any("error", err))
 	})
 
 	server.OnError(func(err error) {
-		log4go.Println("OnError", err)
+		slog.Info("OnError", slog.Any("error", err))
 	})
 
 	if err := server.Start(context.Background()); err != nil {
-		log4go.Println("Start Error:", err)
+		slog.Info("Start Error", slog.Any("error", err))
 		return
 	}
 
-	var m = mdns.Resource{
+	var resource = mdns.Resource{
 		Header: dnsmessage.Header{
 			Response: true,
 		},
@@ -141,7 +143,7 @@ func main() {
 			},
 		},
 	}
-	server.Multicast(m)
+	server.Multicast(resource)
 
 	select {}
 }
