@@ -13,7 +13,7 @@ func main() {
 	var name = mdns.MustName("smartwalle.local.")
 
 	var client = mdns.NewClient()
-	client.EnableIPv4()
+	client.EnableIPv6()
 
 	client.OnResource(func(addr net.Addr, resource mdns.Resource) {
 		slog.Info("----------- OnResource", slog.Any("header", resource.Header))
@@ -52,7 +52,7 @@ func main() {
 		},
 	}
 	if err := client.Send(question); err != nil {
-		slog.Info("Multicast Error", slog.Any("error", err))
+		slog.Info("Send Error", slog.Any("error", err))
 		return
 	}
 

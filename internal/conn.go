@@ -3,8 +3,6 @@ package internal
 import (
 	"fmt"
 	"net"
-	"os"
-	"syscall"
 )
 
 type PacketConnFactory interface {
@@ -54,15 +52,21 @@ func (c *Conn) SetPort(mPort, lPort, rPort int) {
 }
 
 func (c *Conn) Close() error {
+	var lerr error
 	if c.lConn != nil {
-		c.lConn.Close()
+		lerr = c.lConn.Close()
 		c.lConn = nil
 	}
+	var rerr error
 	if c.rConn != nil {
-		c.rConn.Close()
+		rerr = c.rConn.Close()
 		c.rConn = nil
 	}
-	return nil
+
+	if lerr != nil {
+		return lerr
+	}
+	return rerr
 }
 
 func (c *Conn) Listen(packets chan Packet, quit chan struct{}) {
@@ -94,15 +98,6 @@ func (c *Conn) listen(conn net.PacketConn, packets chan Packet, quit chan struct
 func (c *Conn) SendTo(b []byte, dst *net.UDPAddr) error {
 	_, err := c.lConn.WriteTo(b, dst)
 	if err != nil {
-		if err, ok := err.(*net.OpError); ok {
-			if err, ok := err.Err.(*os.SyscallError); ok {
-				if err, ok := err.Err.(syscall.Errno); ok {
-					switch err {
-					case syscall.EADDRNOTAVAIL, syscall.ENETUNREACH:
-					}
-				}
-			}
-		}
 		return err
 	}
 	return nil
@@ -124,7 +119,7 @@ func (c *Conn) MakeUDPSocket(ifaces []net.Interface) (err error) {
 	if c.rFactory != nil && c.rAddr != nil {
 		rConn, err = c.rFactory.MakeUDPSocket(ifaces, c.rAddr, c.ttl)
 		if err != nil {
-			lConn.Close()
+			_ = lConn.Close()
 			return err
 		}
 	}

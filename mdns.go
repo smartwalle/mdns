@@ -98,13 +98,13 @@ func (m *mDNS) SendTo(message dnsmessage.Message, dst *net.UDPAddr) error {
 		if m.conn4 != nil {
 			return m.conn4.SendTo(b, dst)
 		} else {
-			return fmt.Errorf("IPv4 was not enabled!")
+			return fmt.Errorf("IPv4 was not enabled")
 		}
 	} else {
 		if m.conn6 != nil {
 			return m.conn6.SendTo(b, dst)
 		} else {
-			return fmt.Errorf("IPv6 was not enabled!")
+			return fmt.Errorf("IPv6 was not enabled")
 		}
 	}
 }
@@ -157,13 +157,15 @@ func (m *mDNS) initMDNSConn() error {
 
 func (m *mDNS) Start(ctx context.Context) error {
 	if err := m.initMDNSConn(); err != nil {
-		m.Close()
+		_ = m.Close()
 		return err
 	}
 	go func() {
 		// NOTE: This defer statement will close connections, which will force
 		// the goroutines started by Listen() to exit.
-		defer m.Close()
+		defer func() {
+			_ = m.Close()
+		}()
 
 		var quit = make(chan struct{})
 		defer close(quit)
@@ -211,7 +213,7 @@ func (m *mDNS) Start(ctx context.Context) error {
 						m.qHandler(received.Addr, nQuestion)
 					}
 				} else {
-					parser.SkipAllQuestions()
+					_ = parser.SkipAllQuestions()
 				}
 
 				if m.rHandler != nil {
@@ -229,9 +231,9 @@ func (m *mDNS) Start(ctx context.Context) error {
 						m.rHandler(received.Addr, nResource)
 					}
 				} else {
-					parser.SkipAllAnswers()
-					parser.SkipAllAuthorities()
-					parser.SkipAllAdditionals()
+					_ = parser.SkipAllAnswers()
+					_ = parser.SkipAllAuthorities()
+					_ = parser.SkipAllAdditionals()
 				}
 			}
 		}

@@ -69,7 +69,9 @@ func main() {
 						},
 					},
 				}
-				server.SendTo(resource, addr.(*net.UDPAddr))
+				if err := server.SendTo(resource, addr.(*net.UDPAddr)); err != nil {
+					slog.Info("Send Error", slog.Any("error", err))
+				}
 			}
 		}
 	})
@@ -145,7 +147,11 @@ func main() {
 			},
 		},
 	}
-	server.Multicast(resource)
+
+	if err := server.Multicast(resource); err != nil {
+		slog.Info("Multicast Error", slog.Any("error", err))
+		return
+	}
 
 	select {}
 }
