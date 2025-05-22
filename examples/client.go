@@ -16,13 +16,13 @@ func main() {
 	client.EnableIPv4()
 
 	client.OnResource(func(addr net.Addr, resource mdns.Resource) {
-		slog.Info("OnResource", slog.Any("addr", addr))
+		slog.Info("----------- OnResource", slog.Any("header", resource.Header))
 		for _, answer := range resource.Answers {
 			if answer.Header.Name.String() != name.String() {
 				continue
 			}
 
-			slog.Info("Answer", slog.Any("addr", addr), slog.Any("name", answer.Header.Name), slog.Any("type", answer.Header.Type), slog.Any("body", answer.Body))
+			slog.Info("OnResource", slog.Any("addr", addr), slog.Any("name", answer.Header.Name), slog.Any("type", answer.Header.Type), slog.Any("body", answer.Body))
 		}
 	})
 

@@ -15,6 +15,7 @@ func main() {
 	server.EnableIPv4()
 
 	server.OnQuestion(func(addr net.Addr, question mdns.Question) {
+		slog.Info("----------- OnQuestion", slog.Any("header", question.Header))
 		for _, q := range question.Questions {
 			slog.Info("OnQuestion", slog.Any("addr", addr), slog.Any("name", q.Name), slog.Any("type", q.Type))
 
@@ -74,10 +75,11 @@ func main() {
 	})
 
 	server.OnResource(func(addr net.Addr, resource mdns.Resource) {
+		slog.Info("----------- OnResource", slog.Any("header", resource.Header))
 		for _, answer := range resource.Answers {
-			if answer.Header.Name == name {
-				slog.Info("OnResource", slog.Any("addr", addr), slog.Any("name", answer.Header.Name), slog.Any("type", answer.Header.Type), slog.Any("body", answer.Body))
-			}
+			//if answer.Header.Name == name {
+			slog.Info("OnResource", slog.Any("addr", addr), slog.Any("name", answer.Header.Name), slog.Any("type", answer.Header.Type), slog.Any("body", answer.Body))
+			//}
 		}
 	})
 

@@ -173,62 +173,59 @@ func (m *mDNS) Start(ctx context.Context) error {
 		var parser = &dnsmessage.Parser{}
 
 		for {
-			var received internal.Packet
-
 			select {
 			case <-ctx.Done():
 				return
-			case received = <-packets:
-			}
-
-			if received.Error != nil {
-				if m.eHandler != nil {
-					go m.eHandler(received.Error)
-				}
-				return
-			}
-
-			var header dnsmessage.Header
-			var err error
-
-			if header, err = parser.Start(received.Data); err != nil {
-				if m.wHandler != nil {
-					go m.wHandler(received.Addr, err)
-				}
-				continue
-			}
-
-			if m.qHandler != nil {
-				var questions, _ = parser.AllQuestions()
-				if len(questions) > 0 {
-					var nQuestion = Question{
-						Header:    header,
-						Questions: questions,
+			case received := <-packets:
+				if received.Error != nil {
+					if m.eHandler != nil {
+						m.eHandler(received.Error)
 					}
-					go m.qHandler(received.Addr, nQuestion)
+					continue
 				}
-			} else {
-				parser.SkipAllQuestions()
-			}
 
-			if m.rHandler != nil {
-				var answers, _ = parser.AllAnswers()
-				var authorities, _ = parser.AllAuthorities()
-				var additionals, _ = parser.AllAdditionals()
+				var header dnsmessage.Header
+				var err error
 
-				if len(answers) > 0 || len(authorities) > 0 || len(additionals) > 0 {
-					var nResource = Resource{
-						Header:      header,
-						Answers:     answers,
-						Authorities: authorities,
-						Additionals: additionals,
+				if header, err = parser.Start(received.Data); err != nil {
+					if m.wHandler != nil {
+						m.wHandler(received.Addr, err)
 					}
-					go m.rHandler(received.Addr, nResource)
+					continue
 				}
-			} else {
-				parser.SkipAllAnswers()
-				parser.SkipAllAuthorities()
-				parser.SkipAllAdditionals()
+
+				if m.qHandler != nil {
+					var questions, _ = parser.AllQuestions()
+					if len(questions) > 0 {
+						var nQuestion = Question{
+							Header:    header,
+							Questions: questions,
+						}
+						m.qHandler(received.Addr, nQuestion)
+					}
+				} else {
+					parser.SkipAllQuestions()
+				}
+
+				if m.rHandler != nil {
+					var answers, _ = parser.AllAnswers()
+					var authorities, _ = parser.AllAuthorities()
+					var additionals, _ = parser.AllAdditionals()
+
+					if len(answers) > 0 || len(authorities) > 0 || len(additionals) > 0 {
+						var nResource = Resource{
+							Header:      header,
+							Answers:     answers,
+							Authorities: authorities,
+							Additionals: additionals,
+						}
+						m.rHandler(received.Addr, nResource)
+					}
+				} else {
+					parser.SkipAllAnswers()
+					parser.SkipAllAuthorities()
+					parser.SkipAllAdditionals()
+				}
 			}
 		}
 	}()
