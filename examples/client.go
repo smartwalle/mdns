@@ -13,7 +13,7 @@ func main() {
 	var name = mdns.MustName("smartwalle.local.")
 
 	var client = mdns.NewClient()
-	client.EnableIPv6()
+	client.EnableIPv4()
 
 	client.OnResource(func(addr net.Addr, resource mdns.Resource) {
 		slog.Info("----------- OnResource", slog.Any("header", resource.Header))
